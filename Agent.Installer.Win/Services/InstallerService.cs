@@ -100,7 +100,7 @@ namespace Remotely.Agent.Installer.Win.Services
 
                 ProcessEx.StartHidden("netsh", "advfirewall firewall delete rule name=\"Remotely Desktop Unattended\"").WaitForExit();
 
-                GetRegistryBaseKey().DeleteSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Remotely", false);
+                GetRegistryBaseKey().DeleteSubKeyTree(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Remotely", false);
 
                 return true;
             }
@@ -197,8 +197,10 @@ namespace Remotely.Agent.Installer.Win.Services
                     {
                         await sw.WriteAsync(Serializer.Serialize(setupOptions));
                     }
-                    var response = await wr.GetResponseAsync() as HttpWebResponse;
-                    Logger.Write($"Create device response: {response.StatusCode}");
+                    using (var response = await wr.GetResponseAsync() as HttpWebResponse)
+                    { 
+                        Logger.Write($"Create device response: {response.StatusCode}");
+                    }
                 }
             }
             catch (WebException ex) when ((ex.Response is HttpWebResponse response) && response.StatusCode == HttpStatusCode.BadRequest)
@@ -258,13 +260,15 @@ namespace Remotely.Agent.Installer.Win.Services
             else
             {
                 ProgressMessageChanged.Invoke(this, "Downloading Remotely agent.");
-                var client = new WebClient();
-                client.DownloadProgressChanged += (sender, args) =>
+                using (var client = new WebClient())
                 {
-                    ProgressValueChanged?.Invoke(this, args.ProgressPercentage);
-                };
+                    client.DownloadProgressChanged += (sender, args) =>
+                    {
+                        ProgressValueChanged?.Invoke(this, args.ProgressPercentage);
+                    };
 
-                await client.DownloadFileTaskAsync($"{serverUrl}/Downloads/Remotely-Win10-{Platform}.zip", targetFile);
+                    await client.DownloadFileTaskAsync($"{serverUrl}/Downloads/Remotely-Win10-{Platform}.zip", targetFile);
+                }
             }
 
             ProgressMessageChanged.Invoke(this, "Extracting Remotely files.");
@@ -284,8 +288,10 @@ namespace Remotely.Agent.Installer.Win.Services
 
             var wr = WebRequest.CreateHttp($"{serverUrl}/Downloads/Remotely-Win10-{Platform}.zip");
             wr.Method = "Head";
-            var response = (HttpWebResponse)await wr.GetResponseAsync();
-            FileIO.WriteAllText(Path.Combine(InstallPath, "etag.txt"), response.Headers["ETag"]);
+            using (var response = (HttpWebResponse)await wr.GetResponseAsync())
+            {
+                FileIO.WriteAllText(Path.Combine(InstallPath, "etag.txt"), response.Headers["ETag"]);
+            }
 
             ZipFile.ExtractToDirectory(targetFile, tempDir);
             var fileSystemEntries = Directory.GetFileSystemEntries(tempDir);

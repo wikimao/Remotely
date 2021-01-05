@@ -91,7 +91,8 @@ namespace Remotely.Server.Areas.Identity.Pages.Account
                     Email = Input.Email,
                     IsServerAdmin = organizationCount == 0,
                     Organization = new Organization(),
-                    UserOptions = new RemotelyUserOptions()
+                    UserOptions = new RemotelyUserOptions(),
+                    IsAdministrator = true
                 };
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
@@ -108,7 +109,7 @@ namespace Remotely.Server.Areas.Identity.Pages.Account
                         protocol: Request.Scheme);
 
                     await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"<img src='https://remotely.one/media/Remotely_Logo.png'/><br><br>Please confirm your Remotely account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                        $"<img src='{Request.Scheme}://{Request.Host}/images/Remotely_Logo.png'/><br><br>Please confirm your Remotely account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {

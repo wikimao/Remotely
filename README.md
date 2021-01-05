@@ -4,14 +4,19 @@ A remote control and remote scripting solution, built with .NET Core, SignalR Co
 [![Build Status](https://dev.azure.com/translucency/Remotely/_apis/build/status/Remotely-ReleaseBuild?branchName=master)](https://dev.azure.com/translucency/Remotely/_build/latest?definitionId=17&branchName=master)
 ![GitHub Build](https://github.com/lucent-sea/Remotely/workflows/GitHub%20Build/badge.svg)
 
-## Sponsor This Project
+## Donations
+If this project has benefited you in some way, or if you just want to show appreciation, please consider donating to a charity.
+
+Suggested Charities: https://www.givewell.org/charities/top-charities
+
+If you want to send a few dollars my way as well, you can with the below links.  But if you have to choose between one or the other, please pick the charity.  Your money will have a much greater impact on their lives than mine.
+
 Ongoing via GitHub: https://github.com/sponsors/lucent-sea  
 One-Time via PayPal: https://paypal.me/translucency  
 
 ## Project Links
 Demo App: https://app.remotely.one  
 Website: https://remotely.one  
-Feedback: https://remotely.featureupvote.com/  
 Subreddit: https://www.reddit.com/r/remotely_app/  
 
 ## Disclaimer
@@ -65,6 +70,7 @@ The following steps will configure your Windows 10 machine for building the Remo
 * An SSL certificate for HTTPS is recommended.  You can install one for free using Let's Encrypt.
 	* Resources: https://letsencrypt.org/, https://certifytheweb.com/
 * Documentation for hosting in IIS can be found here: https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/index?view=aspnetcore-3.1
+* There is no default account.  You must create the first one via the Register page, which will create an account that is both a server and organization admin.
 
 ## Hosting a Server (Ubuntu)
 * Ubuntu 18.04 and 19.04 have been tested.
@@ -78,12 +84,17 @@ The following steps will configure your Windows 10 machine for building the Remo
 	* Alternatively, you can build from source (using RuntimeIdentifier "linux-x64" for the server) and copy the server files to the site folder.
 * Change values in appsettings.json for your environment.  Make a copy named `appsettings.Production.json` (see Configuration section below).
 * Documentation for hosting behind Nginx can be found here: https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-3.1
+* There is no default account.  You must create the first one via the Register page, which will create an account that is both a server and organization admin.
 
 
 ## Hosting Scenarios
 There are countless ways to host an ASP.NET Core app, and I can't document or automate all of them.  For hosting scenarios aside from the above two, please refer to Microsoft's documentation.
 - https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/?view=aspnetcore-3.1
 
+## Admin Accounts
+The first account created will be an admin for both the server and the organization that's created for the account.
+
+An organization admin has access to the Organization page and server log entries specific to his/her organization.  A server admin has access to the Server Config page and can see server log entries that don't belong to an organization. 
 
 ## Upgrading
 * To upgrade a server, do any of the below to copy the new Server application files.

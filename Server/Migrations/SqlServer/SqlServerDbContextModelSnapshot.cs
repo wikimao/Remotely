@@ -15,9 +15,24 @@ namespace Remotely.Server.Migrations.SqlServer
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.7")
+                .UseIdentityColumns()
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "5.0.1");
+
+            modelBuilder.Entity("DeviceGroupRemotelyUser", b =>
+                {
+                    b.Property<string>("DeviceGroupsID")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UsersId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("DeviceGroupsID", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("DeviceGroupRemotelyUser");
+                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -29,18 +44,18 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("NormalizedName")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedName")
                         .IsUnique()
-                        .HasName("RoleNameIndex")
+                        .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles");
@@ -51,7 +66,7 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .UseIdentityColumn();
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("nvarchar(max)");
@@ -87,8 +102,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
@@ -100,12 +115,12 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("NormalizedEmail")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("NormalizedUserName")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
@@ -123,17 +138,17 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("bit");
 
                     b.Property<string>("UserName")
-                        .HasColumnType("nvarchar(256)")
-                        .HasMaxLength(256);
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
-                        .HasName("EmailIndex");
+                        .HasDatabaseName("EmailIndex");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasName("UserNameIndex")
+                        .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("RemotelyUsers");
@@ -146,7 +161,7 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .UseIdentityColumn();
 
                     b.Property<string>("ClaimType")
                         .HasColumnType("nvarchar(max)");
@@ -168,12 +183,12 @@ namespace Remotely.Server.Migrations.SqlServer
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(128)")
-                        .HasMaxLength(128);
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(128)")
-                        .HasMaxLength(128);
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -210,12 +225,12 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(128)")
-                        .HasMaxLength(128);
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(128)")
-                        .HasMaxLength(128);
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -265,8 +280,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("OrganizationID")
                         .HasColumnType("nvarchar(450)");
@@ -334,8 +349,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Alias")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<double>("CpuUtilization")
                         .HasColumnType("float");
@@ -386,8 +401,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Tags")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<double>("TotalMemory")
                         .HasColumnType("float");
@@ -400,6 +415,9 @@ namespace Remotely.Server.Migrations.SqlServer
 
                     b.Property<double>("UsedStorage")
                         .HasColumnType("float");
+
+                    b.Property<int>("WebRtcSetting")
+                        .HasColumnType("int");
 
                     b.HasKey("ID");
 
@@ -418,8 +436,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("OrganizationID")
                         .HasColumnType("nvarchar(450)");
@@ -494,8 +512,8 @@ namespace Remotely.Server.Migrations.SqlServer
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("OrganizationName")
-                        .HasColumnType("nvarchar(25)")
-                        .HasMaxLength(25);
+                        .HasMaxLength(25)
+                        .HasColumnType("nvarchar(25)");
 
                     b.HasKey("ID");
 
@@ -529,33 +547,13 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.ToTable("SharedFiles");
                 });
 
-            modelBuilder.Entity("Remotely.Shared.Models.UserDevicePermission", b =>
-                {
-                    b.Property<string>("ID")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("DeviceGroupID")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("UserID")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("DeviceGroupID");
-
-                    b.HasIndex("UserID");
-
-                    b.ToTable("PermissionLinks");
-                });
-
             modelBuilder.Entity("Remotely.Shared.Models.RemotelyUser", b =>
                 {
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUser");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsAdministrator")
                         .HasColumnType("bit");
@@ -577,6 +575,21 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasIndex("UserName");
 
                     b.HasDiscriminator().HasValue("RemotelyUser");
+                });
+
+            modelBuilder.Entity("DeviceGroupRemotelyUser", b =>
+                {
+                    b.HasOne("Remotely.Shared.Models.DeviceGroup", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceGroupsID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Remotely.Shared.Models.RemotelyUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -643,6 +656,12 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.RemotelyUser", "User")
                         .WithMany("Alerts")
                         .HasForeignKey("UserID");
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.ApiToken", b =>
@@ -650,6 +669,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("ApiTokens")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.CommandResult", b =>
@@ -657,6 +678,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("CommandResults")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.Device", b =>
@@ -668,6 +691,10 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("Devices")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("DeviceGroup");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.DeviceGroup", b =>
@@ -675,6 +702,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("DeviceGroups")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.EventLog", b =>
@@ -682,6 +711,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("EventLogs")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.InviteLink", b =>
@@ -689,6 +720,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("InviteLinks")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.SharedFile", b =>
@@ -696,17 +729,8 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("SharedFiles")
                         .HasForeignKey("OrganizationID");
-                });
 
-            modelBuilder.Entity("Remotely.Shared.Models.UserDevicePermission", b =>
-                {
-                    b.HasOne("Remotely.Shared.Models.DeviceGroup", "DeviceGroup")
-                        .WithMany("PermissionLinks")
-                        .HasForeignKey("DeviceGroupID");
-
-                    b.HasOne("Remotely.Shared.Models.RemotelyUser", "User")
-                        .WithMany("PermissionLinks")
-                        .HasForeignKey("UserID");
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Remotely.Shared.Models.RemotelyUser", b =>
@@ -714,6 +738,44 @@ namespace Remotely.Server.Migrations.SqlServer
                     b.HasOne("Remotely.Shared.Models.Organization", "Organization")
                         .WithMany("RemotelyUsers")
                         .HasForeignKey("OrganizationID");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("Remotely.Shared.Models.Device", b =>
+                {
+                    b.Navigation("Alerts");
+                });
+
+            modelBuilder.Entity("Remotely.Shared.Models.DeviceGroup", b =>
+                {
+                    b.Navigation("Devices");
+                });
+
+            modelBuilder.Entity("Remotely.Shared.Models.Organization", b =>
+                {
+                    b.Navigation("Alerts");
+
+                    b.Navigation("ApiTokens");
+
+                    b.Navigation("CommandResults");
+
+                    b.Navigation("DeviceGroups");
+
+                    b.Navigation("Devices");
+
+                    b.Navigation("EventLogs");
+
+                    b.Navigation("InviteLinks");
+
+                    b.Navigation("RemotelyUsers");
+
+                    b.Navigation("SharedFiles");
+                });
+
+            modelBuilder.Entity("Remotely.Shared.Models.RemotelyUser", b =>
+                {
+                    b.Navigation("Alerts");
                 });
 #pragma warning restore 612, 618
         }

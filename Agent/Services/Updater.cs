@@ -16,8 +16,10 @@ namespace Remotely.Agent.Services
             ConfigService = configService;
         }
 
+        private SemaphoreSlim CheckForUpdatesLock { get; } = new SemaphoreSlim(1, 1);
         private ConfigService ConfigService { get; }
-        private SemaphoreSlim UpdateLock { get; } = new SemaphoreSlim(1);
+        private SemaphoreSlim InstallLatestVersionLock { get; } = new SemaphoreSlim(1, 1);
+        private bool PreviousUpdateFailed { get; set; }
         private System.Timers.Timer UpdateTimer { get; } = new System.Timers.Timer(TimeSpan.FromHours(6).TotalMilliseconds);
 
 
@@ -33,21 +35,23 @@ namespace Remotely.Agent.Services
             UpdateTimer.Start();
         }
 
-        private async void UpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            await CheckForUpdates();
-        }
-
         public async Task CheckForUpdates()
         {
             try
             {
+                await CheckForUpdatesLock.WaitAsync();
+
                 if (EnvironmentHelper.IsDebug)
                 {
                     return;
                 }
 
-                await UpdateLock.WaitAsync();
+                if (PreviousUpdateFailed)
+                {
+                    Logger.Write("Skipping update check due to previous failure.  Restart the service to try again, or manually install the update.");
+                    return;
+                }
+
 
                 var connectionInfo = ConfigService.GetConnectionInfo();
                 var serverUrl = ConfigService.GetConnectionInfo().Host;
@@ -80,7 +84,7 @@ namespace Remotely.Agent.Services
                     var wr = WebRequest.CreateHttp(fileUrl);
                     wr.Method = "Head";
                     wr.Headers.Add("If-None-Match", lastEtag);
-                    var response = (HttpWebResponse)await wr.GetResponseAsync();
+                    using var response = (HttpWebResponse)await wr.GetResponseAsync();
                     if (response.StatusCode == HttpStatusCode.NotModified)
                     {
                         Logger.Write("Service Updater: Version is current.");
@@ -104,15 +108,16 @@ namespace Remotely.Agent.Services
             }
             finally
             {
-                UpdateLock.Release();
+                CheckForUpdatesLock.Release();
             }
         }
-
 
         public async Task InstallLatestVersion()
         {
             try
             {
+                await InstallLatestVersionLock.WaitAsync();
+
                 var connectionInfo = ConfigService.GetConnectionInfo();
                 var serverUrl = connectionInfo.Host;
 
@@ -135,7 +140,7 @@ namespace Remotely.Agent.Services
                        serverUrl + $"/api/AgentUpdate/DownloadPackage/win-{platform}/{downloadId}",
                        zipPath);
 
-                    await WebRequest.CreateHttp(serverUrl + $"/api/AgentUpdate/ClearDownload/{downloadId}").GetResponseAsync();
+                    (await WebRequest.CreateHttp(serverUrl + $"/api/AgentUpdate/ClearDownload/{downloadId}").GetResponseAsync()).Dispose();
 
 
                     foreach (var proc in Process.GetProcessesByName("Remotely_Installer"))
@@ -171,10 +176,10 @@ namespace Remotely.Agent.Services
                            installerPath);
 
                     await wc.DownloadFileTaskAsync(
-                       serverUrl + $"/api/AgentUpdate/DownloadPackage/linux/{downloadId}",
+                       serverUrl + $"/API/AgentUpdate/DownloadPackage/linux/{downloadId}",
                        zipPath);
 
-                    await WebRequest.CreateHttp(serverUrl + $"/api/AgentUpdate/ClearDownload/{downloadId}").GetResponseAsync();
+                    (await WebRequest.CreateHttp(serverUrl + $"/api/AgentUpdate/ClearDownload/{downloadId}").GetResponseAsync()).Dispose();
 
                     Logger.Write("Launching installer to perform update.");
 
@@ -185,15 +190,24 @@ namespace Remotely.Agent.Services
             }
             catch (WebException ex) when (ex.Status == WebExceptionStatus.Timeout)
             {
-                Logger.Write("Timed out while waiting to downloaod update.", Shared.Enums.EventType.Warning);
+                Logger.Write("Timed out while waiting to download update.", Shared.Enums.EventType.Warning);
+                PreviousUpdateFailed = true;
             }
             catch (Exception ex)
             {
                 Logger.Write(ex);
+                PreviousUpdateFailed = true;
+            }
+            finally
+            {
+                InstallLatestVersionLock.Release();
             }
         }
 
-
+        private async void UpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            await CheckForUpdates();
+        }
         private class WebClientEx : WebClient
         {
             private readonly int _requestTimeout;

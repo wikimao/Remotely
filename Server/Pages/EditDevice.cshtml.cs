@@ -2,20 +2,23 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Remotely.Server.Hubs;
 using Remotely.Server.Services;
 using Remotely.Shared.Enums;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Remotely.Server.Pages
 {
     [Authorize]
     public class EditDeviceModel : PageModel
     {
-        public EditDeviceModel(IDataService dataService)
+        public EditDeviceModel(IDataService dataService, IHubContext<AgentHub> agentHubContext)
         {
             DataService = dataService;
+            AgentHubContext = agentHubContext;
         }
 
         public string AgentVersion { get; set; }
@@ -30,6 +33,7 @@ namespace Remotely.Server.Pages
 
 
         private IDataService DataService { get; }
+        private IHubContext<AgentHub> AgentHubContext { get; }
 
         public IActionResult OnGet(string deviceID, bool success)
         {
@@ -63,7 +67,27 @@ namespace Remotely.Server.Pages
                 return Page();
             }
 
-            DataService.UpdateDevice(deviceID, Input.Tags, Input.Alias, Input.DeviceGroupID, Input.Notes);
+            var user = DataService.GetUserByName(User.Identity.Name);
+            var targetDevice = DataService.GetDevice(deviceID);
+            if (targetDevice == null)
+            {
+                return Page();
+            }
+            else if (!DataService.DoesUserHaveAccessToDevice(deviceID, user))
+            {
+                DataService.WriteEvent($"Edit device attempted by unauthorized user.  Device ID: {deviceID}.  User Name: {user.UserName}.",
+                    EventType.Warning,
+                    targetDevice.OrganizationID);
+                return Unauthorized();
+            }
+
+            var onlineOrgAgents = AgentHub.ServiceConnections
+                .Where(x => x.Value.OrganizationID == user.OrganizationID)
+                .Select(x => x.Key);
+
+            AgentHubContext.Clients.Clients(onlineOrgAgents).SendAsync("TriggerHeartbeat");
+
+            DataService.UpdateDevice(deviceID, Input.Tags, Input.Alias, Input.DeviceGroupID, Input.Notes, Input.WebRtcSetting);
 
             return RedirectToPage("EditDevice", new { deviceID, success = true });
         }
@@ -81,6 +105,7 @@ namespace Remotely.Server.Pages
                 Input.DeviceGroupID = device?.DeviceGroupID;
                 Input.Tags = device?.Tags;
                 Input.Notes = device?.Notes;
+                Input.WebRtcSetting = device?.WebRtcSetting ?? default;
 
             }
             var groups = DataService.GetDeviceGroups(User.Identity.Name);
@@ -98,6 +123,8 @@ namespace Remotely.Server.Pages
             public string Tags { get; set; }
 
             public string Notes { get; set; }
+
+            public WebRtcSetting WebRtcSetting { get; set; }
         }
     }
 }

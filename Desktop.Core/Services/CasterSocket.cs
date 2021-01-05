@@ -10,7 +10,31 @@ using System.Threading.Tasks;
 
 namespace Remotely.Desktop.Core.Services
 {
-    public class CasterSocket
+    public interface ICasterSocket
+    {
+        HubConnection Connection { get; }
+        bool IsConnected { get; }
+
+        Task<bool> Connect(string host);
+        Task Disconnect();
+        Task DisconnectAllViewers();
+        Task DisconnectViewer(Viewer viewer, bool notifyViewer);
+        Task<IceServerModel[]> GetIceServers();
+        Task GetSessionID();
+        Task NotifyRequesterUnattendedReady(string requesterID);
+        Task NotifyViewersRelaunchedScreenCasterReady(string[] viewerIDs);
+        Task SendConnectionFailedToViewers(List<string> viewerIDs);
+        Task SendConnectionRequestDenied(string viewerID);
+        Task SendCtrlAltDelToAgent();
+        Task SendDeviceInfo(string serviceID, string machineName, string deviceID);
+        Task SendDtoToViewer<T>(T baseDto, string viewerId);
+        Task SendIceCandidateToBrowser(string candidate, int sdpMlineIndex, string sdpMid, string viewerConnectionID);
+        Task SendMessageToViewer(string viewerID, string message);
+        Task SendRtcOfferToBrowser(string sdp, string viewerID, IceServerModel[] iceServers);
+        Task SendViewerConnected(string viewerConnectionId);
+    }
+
+    public class CasterSocket : ICasterSocket
     {
         public CasterSocket(
             IdleTimer idleTimer,
@@ -168,10 +192,11 @@ namespace Remotely.Desktop.Core.Services
             });
 
             Connection.On("GetScreenCast", async (
-                string viewerID, 
+                string viewerID,
                 string requesterName,
                 bool notifyUser,
                 bool enforceAttendedAccess,
+                bool useWebRtc,
                 string organizationName) =>
             {
                 try
@@ -195,7 +220,8 @@ namespace Remotely.Desktop.Core.Services
                     {
                         NotifyUser = notifyUser,
                         ViewerID = viewerID,
-                        RequesterName = requesterName
+                        RequesterName = requesterName,
+                        UseWebRtc = useWebRtc
                     });
                 }
                 catch (Exception ex)
@@ -236,13 +262,14 @@ namespace Remotely.Desktop.Core.Services
                 }
             });
 
-            Connection.On("RequestScreenCast", (string viewerID, string requesterName, bool notifyUser) =>
+            Connection.On("RequestScreenCast", (string viewerID, string requesterName, bool notifyUser, bool useWebRtc) =>
             {
                 conductor.InvokeScreenCastRequested(new ScreenCastRequest()
                 {
                     NotifyUser = notifyUser,
                     ViewerID = viewerID,
-                    RequesterName = requesterName
+                    RequesterName = requesterName,
+                    UseWebRtc = useWebRtc
                 });
             });
 

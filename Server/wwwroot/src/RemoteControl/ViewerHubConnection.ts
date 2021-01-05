@@ -8,16 +8,9 @@ import { ShowMessage } from "../Shared/UI.js";
 import { BaseDto } from "./Interfaces/BaseDto.js";
 import { WindowsSession } from "../Shared/Models/WindowsSession.js";
 import { BaseDtoType } from "../Shared/Enums/BaseDtoType.js";
+import { HubConnection } from "../Shared/Models/HubConnection.js";
 
 var signalR = window["signalR"];
-
-type HubConnection = {
-    start: () => Promise<any>;
-    connectionStarted: boolean;
-    closedCallbacks: any[];
-    invoke: (...rest) => any;
-    stop: () => any;
-}
 
 export class ViewerHubConnection {
     Connection: HubConnection;
@@ -80,8 +73,8 @@ export class ViewerHubConnection {
 
 
     private ApplyMessageHandlers(hubConnection) {
-        hubConnection.on("SendDtoToBrowser", (dto: ArrayBuffer) => {
-            ViewerApp.DtoMessageHandler.ParseBinaryMessage(dto);
+        hubConnection.on("SendDtoToBrowser", async (dto: ArrayBuffer) => {
+            await ViewerApp.DtoMessageHandler.ParseBinaryMessage(dto);
         });
         hubConnection.on("ClipboardTextChanged", (clipboardText: string) => {
             ViewerApp.ClipboardWatcher.SetClipboardText(clipboardText);
@@ -93,33 +86,7 @@ export class ViewerHubConnection {
         hubConnection.on("ScreenSize", (width: number, height: number) => {
             UI.SetScreenSize(width, height);
         });
-        hubConnection.on("ScreenCapture", (buffer: Uint8Array,
-            left: number,
-            top: number,
-            width: number,
-            height: number,
-            imageQuality: number,
-            endOfFrame: boolean) => {
 
-            if (UI.AutoQualityAdjustCheckBox.checked && Number(UI.QualitySlider.value) != imageQuality) {
-                UI.QualitySlider.value = String(imageQuality);
-            }
-
-            if (endOfFrame) {
-                this.SendDtoToClient(new GenericDto(BaseDtoType.FrameReceived));
-                var url = window.URL.createObjectURL(new Blob(this.PartialCaptureFrames));
-                var img = document.createElement("img");
-                img.onload = () => {
-                    UI.Screen2DContext.drawImage(img, left, top, width, height);
-                    window.URL.revokeObjectURL(url);
-                };
-                img.src = url;
-                this.PartialCaptureFrames = [];
-            }
-            else {
-                this.PartialCaptureFrames.push(buffer);
-            }
-        });
         hubConnection.on("ConnectionFailed", () => {
             UI.ConnectButton.removeAttribute("disabled");
             UI.StatusMessage.innerHTML = "Connection failed or was denied.";

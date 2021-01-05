@@ -1,5 +1,6 @@
 ﻿using Remotely.Desktop.Win.ViewModels;
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -46,7 +47,7 @@ namespace Remotely.Desktop.Win.Views
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            WindowState = WindowState.Minimized;
         }
 
         private void OptionsButton_Click(object sender, RoutedEventArgs e)
@@ -54,9 +55,18 @@ namespace Remotely.Desktop.Win.Views
             (sender as Button).ContextMenu.IsOpen = true;
         }
 
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            ViewModel?.ShutdownApp();
+        }
+
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            await ViewModel?.Init();
+            if (!DesignerProperties.GetIsInDesignMode(this) &&
+                ViewModel != null)
+            {
+                await ViewModel?.Init();
+            }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
