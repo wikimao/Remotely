@@ -9,15 +9,15 @@
     <RootNamespace>Remotely.Desktop.Win</RootNamespace>
     <ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Description>Desktop client for allowing remote control via the Remotely server.</Description>
-    <Copyright>Copyright ©  2020 Translucency Software</Copyright>
+    <Description>Desktop client for allowing your IT admin to provide remote support.</Description>
+    <Copyright>Copyright ©  2021 Translucency Software</Copyright>
     <PackageId>Remotely Desktop</PackageId>
     <Authors>Jared Goodwin</Authors>
     <Company>Translucency Software</Company>
     <Product>Remotely Desktop</Product>
     <PackageProjectUrl>https://remotely.one</PackageProjectUrl>
     <Platforms>AnyCPU;x86;x64</Platforms>
-    <StartupObject>Remotely.Desktop.Win.Program</StartupObject>
+    <StartupObject>Remotely.Desktop.Win.App</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -35,11 +35,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.MixedReality.WebRTC" Version="2.0.2" />
-    <PackageReference Include="NAudio" Version="1.10.0" />
+    <PackageReference Include="NAudio" Version="2.0.0" />
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
     <PackageReference Include="SharpDX.DXGI" Version="4.2.0" />
-    <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,7 +49,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\favicon.ico" />
-    <Resource Include="Assets\Remotely_Icon.png" />
+    <EmbeddedResource Include="Assets\Remotely_Icon.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,7 +64,7 @@
       <SubType>Code</SubType>
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
-    <Compile Update="Controls\HostNamePrompt.xaml.cs">
+    <Compile Update="Views\HostNamePrompt.xaml.cs">
       <DependentUpon>HostNamePrompt.xaml</DependentUpon>
     </Compile>
     <Compile Update="Views\MainWindow.xaml.cs">
@@ -74,7 +74,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Page Update="Controls\HostNamePrompt.xaml">
+    <Page Update="Views\HostNamePrompt.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\MainWindow.xaml">
@@ -83,7 +83,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(SolutionDir) == *Undefined* (&#xD;&#xA;  exit 0&#xD;&#xA;)&#xD;&#xA;if $(ConfigurationName) == Debug (&#xD;&#xA;  if $(PlatformName) == Any CPU (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;  if $(PlatformName) == x64 (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\x64\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\x64\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;  if $(PlatformName) == x86 (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\x86\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\x86\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;)" />
+    <Exec Command="if $(SolutionDir) == *Undefined* (&#xD;&#xA;  exit 0&#xD;&#xA;)&#xD;&#xA;if $(ConfigurationName) == Debug (&#xD;&#xA;  if $(PlatformName) == AnyCPU (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;  if $(PlatformName) == x64 (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\x64\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\x64\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;  if $(PlatformName) == x86 (&#xD;&#xA;      md &quot;$(SolutionDir)Agent\bin\x86\Debug\net5.0\Desktop\&quot;&#xD;&#xA;      xcopy &quot;$(TargetDir)*&quot; &quot;$(SolutionDir)Agent\bin\x86\Debug\net5.0\Desktop\&quot; /y /e /i&#xD;&#xA;  )&#xD;&#xA;)" />
   </Target>
 
 </Project>

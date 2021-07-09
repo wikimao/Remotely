@@ -1,9 +1,9 @@
 ﻿import * as UI from "./UI.js";
-import { BaseDtoType } from "../Shared/Enums/BaseDtoType.js";
+import { BaseDtoType } from "./Enums/BaseDtoType.js";
 import { BaseDto } from "./Interfaces/BaseDto.js";
 import { ViewerApp } from "./App.js";
-import { ShowMessage } from "../Shared/UI.js";
-import { Sound } from "../Shared/Sound.js";
+import { ShowMessage } from "./UI.js";
+import { Sound } from "./Sound.js";
 import {
     AudioSampleDto,
     CaptureFrameDto,
@@ -18,16 +18,17 @@ import {
 import { ReceiveFile } from "./FileTransferService.js";
 
 export class DtoMessageHandler {
-    MessagePack: any = window['MessagePack'];
-    PartialCaptures: Record<string, CaptureFrameDto[]> = {};
-    async ParseBinaryMessage(data: ArrayBuffer) {
+    MessagePack: any = window['msgpack5']();
+    ImagePartials: Record<string, Array<Uint8Array>> = {};
+
+    ParseBinaryMessage(data: ArrayBuffer) {
         var model = this.MessagePack.decode(data) as BaseDto;
         switch (model.DtoType) {
             case BaseDtoType.AudioSample:
                 this.HandleAudioSample(model as unknown as AudioSampleDto);
                 break;
             case BaseDtoType.CaptureFrame:
-                await this.HandleCaptureFrame(model as unknown as CaptureFrameDto);
+                this.HandleCaptureFrame(model as unknown as CaptureFrameDto);
                 break;
             case BaseDtoType.ClipboardText:
                 this.HandleClipboardText(model as unknown as ClipboardTextDto);
@@ -57,71 +58,44 @@ export class DtoMessageHandler {
     HandleAudioSample(audioSample: AudioSampleDto) {
         Sound.Play(audioSample.Buffer);
     }
-    
-    async HandleCaptureFrame(captureFrame: CaptureFrameDto) {
-        if (UI.AutoQualityAdjustCheckBox.checked &&
-            Number(UI.QualitySlider.value) != captureFrame.ImageQuality) {
-            UI.QualitySlider.value = String(captureFrame.ImageQuality);
-        }
 
-        if (captureFrame.EndOfCapture) {
+    HandleCaptureFrame(captureFrame: CaptureFrameDto) {
+
+        if (captureFrame.EndOfFrame) {
+
+            var partials = this.ImagePartials[captureFrame.Id];
+            let completedFrame = new Blob(partials);
+            this.ImagePartials[captureFrame.Id] = [];
+
+            let url = window.URL.createObjectURL(completedFrame);
+            let img = new Image(captureFrame.Width, captureFrame.Height);
+            img.onload = () => {
+                UI.Screen2DContext.drawImage(img,
+                    captureFrame.Left,
+                    captureFrame.Top,
+                    captureFrame.Width,
+                    captureFrame.Height);
+                window.URL.revokeObjectURL(url);
+            };
+            img.src = url;
+
+            //createImageBitmap(completedFrame).then(bitmap => {
+            //    UI.Screen2DContext.drawImage(bitmap,
+            //        captureFrame.Left,
+            //        captureFrame.Top,
+            //        captureFrame.Width,
+            //        captureFrame.Height);
+
+            //    bitmap.close();
+            //})
+
             ViewerApp.MessageSender.SendFrameReceived();
-
-            Object.keys(this.PartialCaptures).forEach(x => {
-                let partial = this.PartialCaptures[x];
-                let firstFrame = partial[0];
-                let frameBytes = partial.map(x => x.ImageBytes);
-
-                var url = window.URL.createObjectURL(new Blob(frameBytes));
-                var img = document.createElement("img");
-                img.onload = () => {
-                    UI.Screen2DContext.drawImage(img,
-                        firstFrame.Left,
-                        firstFrame.Top,
-                        firstFrame.Width,
-                        firstFrame.Height);
-                    window.URL.revokeObjectURL(url);
-                };
-                img.src = url;
-            })
-
-            this.PartialCaptures = {};
         }
-        //else if (captureFrame.EndOfFrame) {
-        //    let key = `${captureFrame.Left},${captureFrame.Top}`;
-        //    let frameBytes = this.PartialCaptures[key].map(x => x.ImageBytes);
-
-        //    //var url = window.URL.createObjectURL(new Blob(frameBytes));
-        //    //var img = document.createElement("img");
-        //    //img.onload = () => {
-        //    //    UI.StagingRenderer.drawImage(img,
-        //    //        captureFrame.Left,
-        //    //        captureFrame.Top,
-        //    //        captureFrame.Width,
-        //    //        captureFrame.Height);
-        //    //    window.URL.revokeObjectURL(url);
-        //    //};
-        //    //img.src = url;
-
-
-        //    let bitmap = await createImageBitmap(new Blob(frameBytes));
-
-        //    UI.StagingRenderer.drawImage(bitmap,
-        //        captureFrame.Left,
-        //        captureFrame.Top,
-        //        captureFrame.Width,
-        //        captureFrame.Height);
-
-        //    bitmap.close();
-        //}
         else {
-            let key = `${captureFrame.Left},${captureFrame.Top}`;
-            if (this.PartialCaptures[key]) {
-                this.PartialCaptures[key].push(captureFrame);
+            if (!this.ImagePartials[captureFrame.Id]) {
+                this.ImagePartials[captureFrame.Id] = [];
             }
-            else {
-                this.PartialCaptures[key] = [captureFrame];
-            }
+            this.ImagePartials[captureFrame.Id].push(captureFrame.ImageBytes);
         }
     }
 
@@ -140,8 +114,7 @@ export class DtoMessageHandler {
     }
     HandleScreenData(screenDataDto: ScreenDataDto) {
         UI.UpdateDisplays(screenDataDto.SelectedScreen, screenDataDto.DisplayNames);
-        ViewerApp.MessageSender.SendAutoQualityAdjust(ViewerApp.Settings.autoQualityEnabled);
-        ViewerApp.MessageSender.SendQualityChange(ViewerApp.Settings.qualityLevel);
+        ViewerApp.MessageSender.SendToggleAutoQuality(ViewerApp.Settings.autoQuality);
     }
 
     HandleScreenSize(screenSizeDto: ScreenSizeDto) {

@@ -5,7 +5,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Copyright>Copyright ©  2020 Translucency Software</Copyright>
+    <Copyright>Copyright ©  2021 Translucency Software</Copyright>
     <Description>Background service that maintains a connection to the Remotely server.  The service is used for remote support and maintenance by this computer's administrators.</Description>
     <Authors>Jared Goodwin</Authors>
     <Product>Remotely Agent</Product>
@@ -19,29 +19,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Assets\favicon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Assets\favicon.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="5.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="5.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="5.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="5.0.1" />
-    <PackageReference Include="Microsoft.PowerShell.Commands.Diagnostics" Version="7.1.0" />
-    <PackageReference Include="Microsoft.PowerShell.Commands.Management" Version="7.1.0" />
-    <PackageReference Include="Microsoft.PowerShell.Commands.Utility" Version="7.1.0" />
-    <PackageReference Include="Microsoft.PowerShell.CoreCLR.Eventing" Version="7.1.0" />
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.1.0" />
-    <PackageReference Include="Microsoft.PowerShell.Security" Version="7.1.0" />
-    <PackageReference Include="Microsoft.WSMan.Management" Version="7.1.0" />
-    <PackageReference Include="Microsoft.WSMan.Runtime" Version="7.1.0" />
-    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
-    <PackageReference Include="System.Management.Automation" Version="7.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="5.0.7" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.1.3" />
+    <PackageReference Include="Microsoft.WSMan.Management" Version="7.1.3" />
+    <PackageReference Include="Microsoft.WSMan.Runtime" Version="7.1.3" />
+    <PackageReference Include="System.Management.Automation" Version="7.1.3" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="5.0.0" />
   </ItemGroup>
 
@@ -49,15 +39,5 @@
     <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
-
-  <ItemGroup>
-    <Compile Update="Services\WindowsService.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Build.ps1">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
 </Project>

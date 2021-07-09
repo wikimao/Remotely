@@ -1070,9 +1070,10 @@ namespace Remotely.Shared.Win32
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {
-            public Int32 x;
-            public Int32 y;
+            public int x;
+            public int y;
         }
+
 
         [StructLayout(LayoutKind.Sequential)]
         public struct CursorInfo
@@ -1211,11 +1212,9 @@ namespace Remotely.Shared.Win32
         }
 
         [return: MarshalAs(UnmanagedType.Bool)]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
         [DllImport("user32", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern bool CloseWindowStation(IntPtr hWinsta);
 
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
         [DllImport("user32", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern SafeWindowStationHandle OpenWindowStation([MarshalAs(UnmanagedType.LPTStr)] string lpszWinSta, [MarshalAs(UnmanagedType.Bool)] bool fInherit, ACCESS_MASK dwDesiredAccess);
 

@@ -13,7 +13,7 @@ using System.Windows.Input;
 
 namespace Remotely.Desktop.Win.ViewModels
 {
-    public class FileTransferWindowViewModel : ViewModelBase
+    public class FileTransferWindowViewModel : BrandedViewModelBase
     {
         private readonly IFileTransferService _fileTransferService;
         private readonly Viewer _viewer;
@@ -82,7 +82,7 @@ namespace Remotely.Desktop.Win.ViewModels
             set
             {
                 _viewerConnectionId = value;
-                FirePropertyChanged(nameof(ViewerConnectionId));
+                FirePropertyChanged();
             }
         }
 
@@ -95,7 +95,7 @@ namespace Remotely.Desktop.Win.ViewModels
             set
             {
                 _viewerName = value;
-                FirePropertyChanged(nameof(ViewerName));
+                FirePropertyChanged();
             }
         }
 
@@ -111,7 +111,7 @@ namespace Remotely.Desktop.Win.ViewModels
                 FileUploads.Add(fileUpload);
             });
 
-            await _fileTransferService.UploadFile(fileUpload, _viewer, (double progress) =>
+            await _fileTransferService.UploadFile(fileUpload, _viewer, fileUpload.CancellationTokenSource.Token, (double progress) =>
             {
                 App.Current.Dispatcher.Invoke(() => fileUpload.PercentProgress = progress);
             });
@@ -122,6 +122,7 @@ namespace Remotely.Desktop.Win.ViewModels
             if (param is FileUpload fileUpload)
             {
                 FileUploads.Remove(fileUpload);
+                fileUpload.CancellationTokenSource.Cancel();
             }
         });
     }

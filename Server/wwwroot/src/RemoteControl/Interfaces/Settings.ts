@@ -1,5 +1,5 @@
 ﻿export interface Settings {
-    autoQualityEnabled: boolean;
-    qualityLevel: number;
+    autoQuality: boolean;
+    displayName: string;
     streamModeEnabled: boolean;
 }

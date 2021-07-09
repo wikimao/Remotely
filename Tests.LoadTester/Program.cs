@@ -1,22 +1,31 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using Remotely.Shared.Services;
+using Remotely.Agent.Services;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Remotely.Tests.LoadTester
 {
     internal class Program
     {
+        private static readonly SemaphoreSlim _lock = new(10, 10);
+        private static readonly double _heartbeatMs = TimeSpan.FromMinutes(1).TotalMilliseconds;
+        private static int _agentCount;
+        private static string _organizationId;
+        private static string _serverurl;
+        private static DeviceInformationServiceWin _deviceInfo;
+
         private static void Main(string[] args)
         {
-            Task.Run(ConnectAgents).Wait();
+            _deviceInfo = new DeviceInformationServiceWin();
+            ConnectAgents();
 
             Console.Write("Press Enter to exit...");
             Console.ReadLine();
         }
 
-        private static async Task ConnectAgents()
+        private static void ConnectAgents()
         {
             try
             {
@@ -36,49 +45,13 @@ namespace Remotely.Tests.LoadTester
                     Environment.Exit(0);
                 }
 
-                var agentCount = int.Parse(CommandLineParser.CommandLineArgs["agentcount"]);
-                var organizationId = CommandLineParser.CommandLineArgs["organizationid"];
-                var serverurl = CommandLineParser.CommandLineArgs["serverurl"];
-                var connections = new Dictionary<string, HubConnection>();
+                _agentCount = int.Parse(CommandLineParser.CommandLineArgs["agentcount"]);
+                _organizationId = CommandLineParser.CommandLineArgs["organizationid"];
+                _serverurl = CommandLineParser.CommandLineArgs["serverurl"];
 
-                for (var i = 0; i < agentCount; i++)
+                for (var i = 0; i < _agentCount; i++)
                 {
-                    try
-                    {
-                        var deviceId = Guid.NewGuid().ToString();
-
-                        var hubConnection = new HubConnectionBuilder()
-                            .WithUrl(serverurl + "/AgentHub")
-                            .Build();
-
-                        Console.WriteLine("Connecting device number " + i.ToString());
-                        await hubConnection.StartAsync();
-
-                        var device = await DeviceInformation.Create(deviceId, organizationId);
-                        device.DeviceName = "TestDevice-" + Guid.NewGuid();
-
-                        var result = await hubConnection.InvokeAsync<bool>("DeviceCameOnline", device);
-
-                        if (!result)
-                        {
-                            Console.WriteLine($"Device {i} failed to come online.");
-                            return;
-                        }
-
-                        var heartbeatTimer = new System.Timers.Timer(TimeSpan.FromMinutes(1).TotalMilliseconds);
-                        heartbeatTimer.Elapsed += async (sender, args) =>
-                        {
-                            var currentInfo = await DeviceInformation.Create(device.ID, organizationId);
-                            currentInfo.DeviceName = device.DeviceName;
-                            await hubConnection.SendAsync("DeviceHeartbeat", currentInfo);
-                        };
-                        heartbeatTimer.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Device {i} failed to connect.");
-                        Console.WriteLine(ex.Message);
-                    }
+                    _ = StartAgent(i);
                 }
             }
             catch (Exception ex)
@@ -86,6 +59,57 @@ namespace Remotely.Tests.LoadTester
                 Console.WriteLine("An error occurred.  Check your syntex.  Error: ");
                 Console.WriteLine();
                 Console.WriteLine(ex.Message);
+            }
+        }
+
+        private static async Task StartAgent(int i)
+        {
+            try
+            {
+                await _lock.WaitAsync();
+
+                var deviceId = Guid.NewGuid().ToString();
+
+                var hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_serverurl + "/AgentHub")
+                    .Build();
+
+                Console.WriteLine("Connecting device number " + i.ToString());
+                await hubConnection.StartAsync();
+
+                var device = await _deviceInfo.CreateDevice(deviceId, _organizationId);
+                device.DeviceName = "TestDevice-" + Guid.NewGuid();
+
+                var result = await hubConnection.InvokeAsync<bool>("DeviceCameOnline", device);
+
+                if (!result)
+                {
+                    Console.WriteLine($"Device {i} failed to come online.");
+                    return;
+                }
+
+                
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(new Random().Next(1, (int)_heartbeatMs));
+                    var heartbeatTimer = new System.Timers.Timer(_heartbeatMs);
+                    heartbeatTimer.Elapsed += async (sender, args) =>
+                    {
+                        var currentInfo = await _deviceInfo.CreateDevice(device.ID, _organizationId);
+                        currentInfo.DeviceName = device.DeviceName;
+                        await hubConnection.SendAsync("DeviceHeartbeat", currentInfo);
+                    };
+                    heartbeatTimer.Start();
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Device {i} failed to connect.");
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
     }

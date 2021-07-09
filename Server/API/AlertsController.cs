@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Remotely.Server.Attributes;
+using Remotely.Server.Auth;
 using Remotely.Server.Services;
 using Remotely.Shared.Models;
 using System;
@@ -35,7 +35,7 @@ namespace Remotely.Server.API
             {
                 try
                 {
-                    await DataService.AddAlert(alertOptions, orgID);
+                    await DataService.AddAlert(alertOptions.AlertDeviceID, orgID, alertOptions.AlertMessage);
                 }
                 catch (Exception ex)
                 {
@@ -103,6 +103,23 @@ namespace Remotely.Server.API
             }
 
             return Unauthorized();
+        }
+
+        [HttpDelete("DeleteAll")]
+        public async Task<IActionResult> DeleteAll()
+        {
+            Request.Headers.TryGetValue("OrganizationID", out var orgID);
+
+            if (User.Identity.IsAuthenticated)
+            {
+                await DataService.DeleteAllAlerts(orgID, User.Identity.Name);
+            }
+            else
+            {
+                await DataService.DeleteAllAlerts(orgID);
+            }
+
+            return Ok();
         }
     }
 }

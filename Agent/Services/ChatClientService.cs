@@ -21,9 +21,9 @@ namespace Remotely.Agent.Services
             AppLauncher = appLauncher;
         }
 
-        private SemaphoreSlim MessageLock { get; } = new SemaphoreSlim(1);
+        private SemaphoreSlim MessageLock { get; } = new(1,1);
         private IAppLauncher AppLauncher { get; }
-        private CacheItemPolicy CacheItemPolicy { get; } = new CacheItemPolicy()
+        private CacheItemPolicy CacheItemPolicy { get; } = new()
         {
             SlidingExpiration = TimeSpan.FromMinutes(10),
             RemovedCallback = new CacheEntryRemovedCallback(args =>
@@ -34,7 +34,7 @@ namespace Remotely.Agent.Services
             })
         };
 
-        private MemoryCache ChatClients { get; } = new MemoryCache("ChatClients");
+        private MemoryCache ChatClients { get; } = new("ChatClients");
 
         public async Task SendMessage(string senderName,
             string message,
@@ -89,7 +89,7 @@ namespace Remotely.Agent.Services
                 if (!chatSession.PipeStream.IsConnected)
                 {
                     ChatClients.Remove(senderConnectionID);
-                    await hubConnection.SendAsync("DisplayMessage", "Chat disconnected.  Please try again.", "Chat disconnected.", senderConnectionID);
+                    await hubConnection.SendAsync("DisplayMessage", "Chat disconnected.  Please try again.", "Chat disconnected.", "bg-warning", senderConnectionID);
                     return;
                 }
 
@@ -110,9 +110,9 @@ namespace Remotely.Agent.Services
 
         private async Task ReadFromStream(NamedPipeClientStream clientPipe, string senderConnectionID, HubConnection hubConnection)
         {
+            using var sr = new StreamReader(clientPipe, leaveOpen: true);
             while (clientPipe.IsConnected)
             {
-                using var sr = new StreamReader(clientPipe, leaveOpen: true);
                 var messageJson = await sr.ReadLineAsync();
                 if (!string.IsNullOrWhiteSpace(messageJson))
                 {

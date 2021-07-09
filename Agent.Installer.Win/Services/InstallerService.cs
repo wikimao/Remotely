@@ -1,6 +1,7 @@
 ﻿using IWshRuntimeLibrary;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
+using Remotely.Agent.Installer.Win.Utilities;
 using Remotely.Shared.Models;
 using System;
 using System.Configuration.Install;
@@ -267,7 +268,7 @@ namespace Remotely.Agent.Installer.Win.Services
                         ProgressValueChanged?.Invoke(this, args.ProgressPercentage);
                     };
 
-                    await client.DownloadFileTaskAsync($"{serverUrl}/Downloads/Remotely-Win10-{Platform}.zip", targetFile);
+                    await client.DownloadFileTaskAsync($"{serverUrl}/Content/Remotely-Win10-{Platform}.zip", targetFile);
                 }
             }
 
@@ -286,7 +287,7 @@ namespace Remotely.Agent.Installer.Win.Services
                 await Task.Delay(10);
             }
 
-            var wr = WebRequest.CreateHttp($"{serverUrl}/Downloads/Remotely-Win10-{Platform}.zip");
+            var wr = WebRequest.CreateHttp($"{serverUrl}/Content/Remotely-Win10-{Platform}.zip");
             wr.Method = "Head";
             using (var response = (HttpWebResponse)await wr.GetResponseAsync())
             {

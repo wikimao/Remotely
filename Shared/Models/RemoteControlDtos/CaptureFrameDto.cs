@@ -1,4 +1,5 @@
 ﻿using Remotely.Shared.Enums;
+using System;
 using System.Runtime.Serialization;
 
 namespace Remotely.Shared.Models.RemoteControlDtos
@@ -9,20 +10,17 @@ namespace Remotely.Shared.Models.RemoteControlDtos
         [DataMember(Name = "DtoType")]
         public new BaseDtoType DtoType { get; } = BaseDtoType.CaptureFrame;
 
-        [DataMember(Name = "EndOfCapture")]
-        public bool EndOfCapture { get; set; }
-
         [DataMember(Name = "EndOfFrame")]
         public bool EndOfFrame { get; set; }
 
         [DataMember(Name = "Height")]
         public int Height { get; set; }
 
+        [DataMember(Name = "Id")]
+        public Guid Id { get; set; }
+
         [DataMember(Name = "ImageBytes")]
         public byte[] ImageBytes { get; set; }
-
-        [DataMember(Name = "ImageQuality")]
-        public long ImageQuality { get; set; }
 
         [DataMember(Name = "Left")]
         public int Left { get; set; }

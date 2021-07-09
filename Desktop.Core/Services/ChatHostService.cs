@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Remotely.Desktop.Core.Services
 {
-    public class ChatHostService : IChatHostService
+    public class ChatHostService : IChatClientService
     {
         private readonly IChatUiService _chatUiService;
 
@@ -54,7 +54,6 @@ namespace Remotely.Desktop.Core.Services
         {
             try
             {
-                NamedPipeStream?.Disconnect();
                 NamedPipeStream?.Dispose();
             }
             catch { }

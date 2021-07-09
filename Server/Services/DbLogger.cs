@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -11,17 +12,17 @@ namespace Remotely.Server.Services
 {
     public class DbLogger : ILogger
     {
-        private readonly string categoryName;
-        private readonly IWebHostEnvironment hostEnvironment;
-        private readonly IServiceProvider serviceProvider;
+        private readonly string _categoryName;
+        private readonly IWebHostEnvironment _hostEnvironment;
+        private readonly IServiceProvider _serviceProvider;
 
         protected static ConcurrentStack<string> ScopeStack { get; } = new ConcurrentStack<string>();
 
         public DbLogger(string categoryName, IWebHostEnvironment hostEnvironment, IServiceProvider serviceProvider)
         {
-            this.categoryName = categoryName;
-            this.hostEnvironment = hostEnvironment;
-            this.serviceProvider = serviceProvider;
+            _categoryName = categoryName;
+            _hostEnvironment = hostEnvironment;
+            _serviceProvider = serviceProvider;
         }
 
         public IDisposable BeginScope<TState>(TState state)
@@ -38,7 +39,7 @@ namespace Remotely.Server.Services
                     break;
                 case LogLevel.Debug:
                 case LogLevel.Information:
-                    if (hostEnvironment.IsDevelopment())
+                    if (_hostEnvironment.IsDevelopment())
                     {
                         return true;
                     }
@@ -57,9 +58,14 @@ namespace Remotely.Server.Services
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            using var scope = serviceProvider.CreateScope();
+            using var scope = _serviceProvider.CreateScope();
             var dataService = scope.ServiceProvider.GetRequiredService<IDataService>();
-            dataService.WriteLog(logLevel, categoryName, eventId, state.ToString(), exception, ScopeStack.ToList());
+
+            var scopeStack = ScopeStack.Any() ?
+                new string[] { ScopeStack.FirstOrDefault(), ScopeStack.LastOrDefault() } :
+                Array.Empty<string>();
+
+            dataService.WriteLog(logLevel, _categoryName, eventId, state.ToString(), exception, scopeStack);
         }
 
 

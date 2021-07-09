@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Remotely.Shared.Models
@@ -7,7 +8,8 @@ namespace Remotely.Shared.Models
     public class ApiToken
     {
         [Key]
-        public string ID { get; set; } = Guid.NewGuid().ToString();
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public string ID { get; set; }
 
         public DateTimeOffset? LastUsed { get; set; }
 
@@ -19,6 +21,5 @@ namespace Remotely.Shared.Models
 
         public string OrganizationID { get; set; }
         public string Secret { get; set; }
-        public string Token { get; set; }
     }
 }

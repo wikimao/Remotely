@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using Remotely.Shared.Models;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Remotely.Server.Areas.Identity.Pages.Account.Manage
 {
@@ -146,7 +149,7 @@ namespace Remotely.Server.Areas.Identity.Pages.Account.Manage
         {
             return string.Format(
                 AuthenticatorUriFormat,
-                _urlEncoder.Encode("Remotely"),
+                _urlEncoder.Encode("Remotely.Server"),
                 _urlEncoder.Encode(email),
                 unformattedKey);
         }

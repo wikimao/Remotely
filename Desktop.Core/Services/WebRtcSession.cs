@@ -1,13 +1,13 @@
 ﻿using MessagePack;
 using Microsoft.MixedReality.WebRTC;
-using Remotely.Shared.Helpers;
+using Remotely.Shared.Utilities;
 using Remotely.Shared.Models;
 using Remotely.Shared.Models.RemoteControlDtos;
-using Remotely.Shared.Utilities;
 using System;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Remotely.Desktop.Core.Services
 {
@@ -61,12 +61,8 @@ namespace Remotely.Desktop.Core.Services
             }
             catch { }
             PeerSession.Transceivers.RemoveAll(x => true);
-            Disposer.TryDisposeAll(new IDisposable[]
-            {
-                Transceiver?.LocalVideoTrack,
-                VideoSource,
-                PeerSession
-            });
+            Disposer.TryDisposeAll(Transceiver?.LocalVideoTrack, VideoSource, PeerSession);
+            GC.SuppressFinalize(this);
         }
 
         public async Task Init(IceServerModel[] iceServers)
@@ -91,10 +87,10 @@ namespace Remotely.Desktop.Core.Services
 
             await PeerSession.InitializeAsync(config);
 
-            PeerSession.LocalSdpReadytoSend += PeerSession_LocalSdpReadytoSend; ;
+            PeerSession.LocalSdpReadytoSend += PeerSession_LocalSdpReadytoSend;
             PeerSession.Connected += PeerConnection_Connected;
             PeerSession.IceStateChanged += PeerConnection_IceStateChanged;
-            PeerSession.IceCandidateReadytoSend += PeerSession_IceCandidateReadytoSend; ;
+            PeerSession.IceCandidateReadytoSend += PeerSession_IceCandidateReadytoSend;
 
             CaptureChannel = await PeerSession.AddDataChannelAsync("ScreenCapture", true, true);
             CaptureChannel.BufferingChanged += DataChannel_BufferingChanged;
@@ -110,6 +106,7 @@ namespace Remotely.Desktop.Core.Services
         public Task SendDto<T>(T dto) where T : BaseDto
         {
             CaptureChannel.SendMessage(MessagePackSerializer.Serialize(dto));
+            TaskHelper.DelayUntil(() => CurrentBuffer < 128_000, TimeSpan.FromSeconds(5));
             return Task.CompletedTask;
         }
 
@@ -152,7 +149,6 @@ namespace Remotely.Desktop.Core.Services
 
         private async void CaptureChannel_MessageReceived(byte[] obj)
         {
-            Logger.Debug($"DataChannel message received.  Size: {obj.Length}");
             await RtcMessageHandler.ParseMessage(Viewer, obj);
         }
         private async void CaptureChannel_StateChanged()

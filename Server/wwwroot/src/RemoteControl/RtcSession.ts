@@ -1,12 +1,12 @@
 ﻿import * as UI from "./UI.js";
-import * as Utilities from "../Shared/Utilities.js";
+import * as Utilities from "./Utilities.js";
 import { ViewerApp } from "./App.js";
-import { IceServerModel } from "../Shared/Models/IceServerModel.js";
+import { IceServerModel } from "./Models/IceServerModel.js";
 
 export class RtcSession {
     PeerConnection: RTCPeerConnection;
     DataChannel: RTCDataChannel;
-    MessagePack: any = window['MessagePack'];
+    MessagePack: any = window['msgpack5']();
     Init(iceServers: IceServerModel[]) {
        
         this.PeerConnection = new RTCPeerConnection({
@@ -31,7 +31,6 @@ export class RtcSession {
 
                 UI.StreamVideoButton.setAttribute("hidden", "hidden");
                 UI.ScreenViewer.removeAttribute("hidden");
-                UI.QualityButton.removeAttribute("hidden");
                 UI.VideoScreenViewer.setAttribute("hidden", "hidden");
             };
             this.DataChannel.onerror = (ev) => {
@@ -41,12 +40,11 @@ export class RtcSession {
 
                 UI.StreamVideoButton.setAttribute("hidden", "hidden");
                 UI.ScreenViewer.removeAttribute("hidden");
-                UI.QualityButton.removeAttribute("hidden");
                 UI.VideoScreenViewer.setAttribute("hidden", "hidden");
             };
-            this.DataChannel.onmessage = async (ev) => {
+            this.DataChannel.onmessage = (ev) => {
                 var data = ev.data as ArrayBuffer;
-                await ViewerApp.DtoMessageHandler.ParseBinaryMessage(data);
+                ViewerApp.DtoMessageHandler.ParseBinaryMessage(data);
                
             };
             this.DataChannel.onopen = (ev) => {
@@ -57,7 +55,6 @@ export class RtcSession {
                 UI.StreamVideoButton.removeAttribute("hidden");
 
                 if (ViewerApp.Settings.streamModeEnabled) {
-                    UI.UpdateStreamingToggled(true);
                     ViewerApp.MessageSender.SendToggleWebRtcVideo(true);
                 }
             };
@@ -70,10 +67,12 @@ export class RtcSession {
             console.log("ICE connection state changed to " + this.iceConnectionState);
         }
         this.PeerConnection.onicecandidate = async (ev) => {
+            console.log("ICE candidate ready: ", ev.candidate);
             await ViewerApp.ViewerHubConnection.SendIceCandidate(ev.candidate);
         };
 
         UI.VideoScreenViewer.onloadedmetadata = (ev) => {
+            UI.UpdateStreamingToggled(true);
             UI.VideoScreenViewer.play();
         }
         this.PeerConnection.ontrack = (event) => {

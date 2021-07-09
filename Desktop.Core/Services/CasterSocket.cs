@@ -59,13 +59,17 @@ namespace Remotely.Desktop.Core.Services
         {
             try
             {
-                if (Connection != null)
+                if (Connection?.State == HubConnectionState.Connected)
                 {
-                    await Connection.StopAsync();
-                    await Connection.DisposeAsync();
+                    try
+                    {
+                        await Connection.StopAsync();
+                        await Connection.DisposeAsync();
+                    }
+                    catch { }
                 }
                 Connection = new HubConnectionBuilder()
-                    .WithUrl($"{host}/CasterHub")
+                    .WithUrl($"{host.Trim().TrimEnd('/')}/CasterHub")
                     .AddMessagePackProtocol()
                     .WithAutomaticReconnect()
                     .Build();
@@ -216,12 +220,14 @@ namespace Remotely.Desktop.Core.Services
                         }
                     }
 
-                    _ = ScreenCaster.BeginScreenCasting(new ScreenCastRequest()
-                    {
-                        NotifyUser = notifyUser,
-                        ViewerID = viewerID,
-                        RequesterName = requesterName,
-                        UseWebRtc = useWebRtc
+                    _ = Task.Run(() => {
+                        ScreenCaster.BeginScreenCasting(new ScreenCastRequest()
+                        {
+                            NotifyUser = notifyUser,
+                            ViewerID = viewerID,
+                            RequesterName = requesterName,
+                            UseWebRtc = useWebRtc
+                        });
                     });
                 }
                 catch (Exception ex)

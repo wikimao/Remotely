@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -41,9 +42,9 @@ namespace Remotely.Desktop.Win.Services
 {
     public class ScreenCapturerWin : IScreenCapturer
     {
-        private readonly Dictionary<string, int> _bitBltScreens = new Dictionary<string, int>();
-        private readonly Dictionary<string, DirectXOutput> _directxScreens = new Dictionary<string, DirectXOutput>();
-        private readonly SemaphoreSlim _screenCaptureLock = new SemaphoreSlim(1);
+        private readonly Dictionary<string, int> _bitBltScreens = new();
+        private readonly Dictionary<string, DirectXOutput> _directxScreens = new();
+        private readonly object _screenBoundsLock = new();
 
         public ScreenCapturerWin()
         {
@@ -53,8 +54,14 @@ namespace Remotely.Desktop.Win.Services
 
         public event EventHandler<Rectangle> ScreenChanged;
 
+        private enum GetDirectXFrameResult
+        {
+            Success,
+            Failure,
+            Timeout,
+        }
+
         public bool CaptureFullscreen { get; set; } = true;
-        public Rectangle CurrentScreenBounds { get; private set; } = Screen.PrimaryScreen.Bounds;
         public bool NeedsInit { get; set; } = true;
         public string SelectedScreen { get; private set; } = Screen.PrimaryScreen.DeviceName;
         public void Dispose()
@@ -67,56 +74,64 @@ namespace Remotely.Desktop.Win.Services
             }
             catch { }
         }
+        public Rectangle CurrentScreenBounds { get; private set; } = Screen.PrimaryScreen.Bounds;
+
         public IEnumerable<string> GetDisplayNames() => Screen.AllScreens.Select(x => x.DeviceName);
 
         public Bitmap GetNextFrame()
         {
-            try
+            lock (_screenBoundsLock)
             {
-                _screenCaptureLock.Wait();
-
-                if (NeedsInit)
+                try
                 {
-                    Logger.Write("Init needed in GetNextFrame.");
-                    Init();
-                }
 
-                // Sometimes DX will result in a timeout, even when there are changes
-                // on the screen.  I've observed this when a laptop lid is closed, or
-                // on some machines that aren't connected to a monitor.  This will
-                // have it fall back to BitBlt in those cases.
-                // TODO: Make DX capture work with changed screen orientation.
-                if (_directxScreens.ContainsKey(SelectedScreen) &&
-                    SystemInformation.ScreenOrientation != ScreenOrientation.Angle270 &&
-                    SystemInformation.ScreenOrientation != ScreenOrientation.Angle90)
-                {
-                    var (result, frame) = GetDirectXFrame();
+                    Win32Interop.SwitchToInputDesktop();
 
-                    if (result == GetDirectXFrameResult.Success ||
-                        result == GetDirectXFrameResult.Timeout)
+                    if (NeedsInit)
                     {
-                        return frame;
+                        Logger.Write("Init needed in GetNextFrame.");
+                        Init();
                     }
+                    
+                    // Sometimes DX will result in a timeout, even when there are changes
+                    // on the screen.  I've observed this when a laptop lid is closed, or
+                    // on some machines that aren't connected to a monitor.  This will
+                    // have it fall back to BitBlt in those cases.
+                    // TODO: Make DX capture work with changed screen orientation.
+                    if (_directxScreens.TryGetValue(SelectedScreen, out var dxDisplay) &&
+                        dxDisplay.Rotation == DisplayModeRotation.Identity)
+                    {
+                        var (result, frame) = GetDirectXFrame();
+
+                        if (result == GetDirectXFrameResult.Success)
+                        {
+                            return frame;
+                        }
+                    }
+
+                    return GetBitBltFrame();
+
                 }
+                catch (Exception e)
+                {
+                    Logger.Write(e);
+                    NeedsInit = true;
+                }
+                return null;
+            }
 
-                return GetBitBltFrame();
-
-            }
-            catch (Exception e)
-            {
-                Logger.Write(e);
-                NeedsInit = true;
-            }
-            finally
-            {
-                _screenCaptureLock.Release();
-            }
-            return null;
         }
 
         public int GetScreenCount() => Screen.AllScreens.Length;
 
-        public int GetSelectedScreenIndex() => _bitBltScreens[SelectedScreen];
+        public int GetSelectedScreenIndex()
+        {
+            if (_bitBltScreens.TryGetValue(SelectedScreen, out var index))
+            {
+                return index;
+            }
+            return 0;
+        }
 
         public Rectangle GetVirtualScreenBounds() => SystemInformation.VirtualScreen;
 
@@ -133,20 +148,23 @@ namespace Remotely.Desktop.Win.Services
 
         public void SetSelectedScreen(string displayName)
         {
-            if (displayName == SelectedScreen)
+            lock (_screenBoundsLock)
             {
-                return;
-            }
+                if (displayName == SelectedScreen)
+                {
+                    return;
+                }
 
-            if (_bitBltScreens.ContainsKey(displayName))
-            {
-                SelectedScreen = displayName;
+                if (_bitBltScreens.ContainsKey(displayName))
+                {
+                    SelectedScreen = displayName;
+                }
+                else
+                {
+                    SelectedScreen = _bitBltScreens.Keys.First();
+                }
+                RefreshCurrentScreenBounds();
             }
-            else
-            {
-                SelectedScreen = _bitBltScreens.Keys.First();
-            }
-            RefreshCurrentScreenBounds();
         }
 
         private void ClearDirectXOutputs()
@@ -182,14 +200,6 @@ namespace Remotely.Desktop.Win.Services
 
             return null;
         }
-
-        private enum GetDirectXFrameResult
-        {
-            Success,
-            Failure,
-            Timeout,
-        }
-
         private (GetDirectXFrameResult result, Bitmap frame) GetDirectXFrame()
         {
             try
@@ -327,7 +337,8 @@ namespace Remotely.Desktop.Win.Services
                                     new DirectXOutput(adapter,
                                         device,
                                         output1.DuplicateOutput(device),
-                                        texture2D));
+                                        texture2D,
+                                        output1.Description.Rotation));
                             }
                             catch (Exception ex)
                             {

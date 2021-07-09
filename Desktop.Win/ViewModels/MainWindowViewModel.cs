@@ -2,9 +2,8 @@
 using Remotely.Desktop.Core;
 using Remotely.Desktop.Core.Interfaces;
 using Remotely.Desktop.Core.Services;
-using Remotely.Desktop.Core.ViewModels;
-using Remotely.Desktop.Win.Controls;
 using Remotely.Desktop.Win.Services;
+using Remotely.Desktop.Win.Views;
 using Remotely.Shared.Models;
 using Remotely.Shared.Utilities;
 using Remotely.Shared.Win32;
@@ -20,8 +19,12 @@ using System.Windows.Input;
 
 namespace Remotely.Desktop.Win.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : BrandedViewModelBase
     {
+        private readonly ICasterSocket _casterSocket;
+        private readonly Conductor _conductor;
+        private readonly IConfigService _configService;
+        private readonly ICursorIconWatcher _cursorIconWatcher;
         private string _host;
         private string _sessionID;
 
@@ -36,19 +39,22 @@ namespace Remotely.Desktop.Win.ViewModels
 
             Application.Current.Exit += Application_Exit;
 
-            CursorIconWatcher = Services?.GetRequiredService<ICursorIconWatcher>();
-            CursorIconWatcher.OnChange += CursorIconWatcher_OnChange;
+            _configService = Services.GetRequiredService<IConfigService>();
+            _cursorIconWatcher = Services.GetRequiredService<ICursorIconWatcher>();
+            _cursorIconWatcher.OnChange += CursorIconWatcher_OnChange;
+            _conductor = Services.GetRequiredService<Conductor>();
+            _casterSocket = Services.GetRequiredService<ICasterSocket>();
+
             Services.GetRequiredService<IClipboardService>().BeginWatching();
             Services.GetRequiredService<IKeyboardMouseInput>().Init();
-            Conductor = Services.GetRequiredService<Conductor>();
-            CasterSocket = Services.GetRequiredService<ICasterSocket>();
-            Conductor.SessionIDChanged += SessionIDChanged;
-            Conductor.ViewerRemoved += ViewerRemoved;
-            Conductor.ViewerAdded += ViewerAdded;
-            Conductor.ScreenCastRequested += ScreenCastRequested;
+            _conductor.SessionIDChanged += SessionIDChanged;
+            _conductor.ViewerRemoved += ViewerRemoved;
+            _conductor.ViewerAdded += ViewerAdded;
+            _conductor.ScreenCastRequested += ScreenCastRequested;
         }
 
         public static MainWindowViewModel Current { get; private set; }
+
         public static IServiceProvider Services => ServiceContainer.Instance;
 
         public ICommand ChangeServerCommand
@@ -135,7 +141,7 @@ namespace Remotely.Desktop.Win.ViewModels
             set
             {
                 _host = value;
-                FirePropertyChanged(nameof(Host));
+                FirePropertyChanged();
             }
         }
 
@@ -150,7 +156,7 @@ namespace Remotely.Desktop.Win.ViewModels
                     foreach (Viewer viewer in (param as IList<object>).ToArray())
                     {
                         ViewerRemoved(this, viewer.ViewerConnectionID);
-                        await CasterSocket.DisconnectViewer(viewer, true);
+                        await _casterSocket.DisconnectViewer(viewer, true);
                     }
                 },
                 (param) =>
@@ -167,17 +173,11 @@ namespace Remotely.Desktop.Win.ViewModels
             set
             {
                 _sessionID = value;
-                FirePropertyChanged(nameof(SessionID));
+                FirePropertyChanged();
             }
         }
 
         public ObservableCollection<Viewer> Viewers { get; } = new ObservableCollection<Viewer>();
-
-        private ICasterSocket CasterSocket { get; set; }
-
-        private Conductor Conductor { get; set; }
-
-        private ICursorIconWatcher CursorIconWatcher { get; set; }
 
         public void CopyLink()
         {
@@ -186,15 +186,15 @@ namespace Remotely.Desktop.Win.ViewModels
 
         public async Task GetSessionID()
         {
-            await CasterSocket.SendDeviceInfo(Conductor.ServiceID, Environment.MachineName, Conductor.DeviceID);
-            await CasterSocket.GetSessionID();
+            await _casterSocket.SendDeviceInfo(_conductor.ServiceID, Environment.MachineName, _conductor.DeviceID);
+            await _casterSocket.GetSessionID();
         }
 
         public async Task Init()
         {
             SessionID = "Retrieving...";
 
-            Host = Config.GetConfig().Host;
+            Host = _configService.GetConfig().Host;
 
             while (string.IsNullOrWhiteSpace(Host))
             {
@@ -202,33 +202,42 @@ namespace Remotely.Desktop.Win.ViewModels
                 PromptForHostName();
             }
 
-            Conductor.ProcessArgs(new string[] { "-mode", "Normal", "-host", Host });
+            _conductor.ProcessArgs(new string[] { "-mode", "Normal", "-host", Host });
+
             try
             {
-                await CasterSocket.Connect(Conductor.Host);
+                await _casterSocket.Connect(_conductor.Host);
 
-                CasterSocket.Connection.Closed += async (ex) =>
+                if (_casterSocket.Connection is null)
                 {
-                    await App.Current.Dispatcher.InvokeAsync(() =>
+                    return;
+                }
+
+                _casterSocket.Connection.Closed += async (ex) =>
+                {
+                    await App.Current?.Dispatcher?.InvokeAsync(() =>
                     {
                         Viewers.Clear();
                         SessionID = "Disconnected";
                     });
                 };
 
-                CasterSocket.Connection.Reconnecting += async (ex) =>
+                _casterSocket.Connection.Reconnecting += async (ex) =>
                 {
-                    await App.Current.Dispatcher.InvokeAsync(() =>
+                    await App.Current?.Dispatcher?.InvokeAsync(() =>
                     {
                         Viewers.Clear();
                         SessionID = "Reconnecting";
                     });
                 };
 
-                CasterSocket.Connection.Reconnected += async (arg) =>
+                _casterSocket.Connection.Reconnected += async (arg) =>
                 {
                     await GetSessionID();
                 };
+
+                await DeviceInitService.GetInitParams();
+                ApplyBranding();
 
                 await GetSessionID();
             }
@@ -248,26 +257,30 @@ namespace Remotely.Desktop.Win.ViewModels
             {
                 prompt.ViewModel.Host = Host;
             }
+
             prompt.Owner = App.Current?.MainWindow;
             prompt.ShowDialog();
-            var result = prompt.ViewModel.Host;
-            if (!result.StartsWith("https://") && !result.StartsWith("http://"))
+            var result = prompt.ViewModel.Host?.Trim()?.TrimEnd('/');
+
+            if (!Uri.TryCreate(result, UriKind.Absolute, out var serverUri) ||
+                (serverUri.Scheme != Uri.UriSchemeHttp && serverUri.Scheme != Uri.UriSchemeHttps))
             {
-                result = $"https://{result}";
+                Logger.Write("Server URL is not valid.");
+                MessageBox.Show("Server URL must be a valid Uri (e.g. https://app.remotely.one).", "Invalid Server URL", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
-            if (result != Host)
-            {
-                Host = result.TrimEnd('/');
-                var config = Config.GetConfig();
-                config.Host = Host;
-                config.Save();
-            }
+
+            Host = result;
+            var config = _configService.GetConfig();
+            config.Host = Host;
+            _configService.Save(config);
         }
 
         public void ShutdownApp()
         {
             Services.GetRequiredService<IShutdownService>().Shutdown();
         }
+
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             App.Current.Dispatcher.Invoke(() =>
@@ -278,9 +291,9 @@ namespace Remotely.Desktop.Win.ViewModels
 
         private async void CursorIconWatcher_OnChange(object sender, CursorInfo cursor)
         {
-            if (Conductor?.Viewers?.Count > 0)
+            if (_conductor?.Viewers?.Count > 0)
             {
-                foreach (var viewer in Conductor.Viewers.Values)
+                foreach (var viewer in _conductor.Viewers.Values)
                 {
                     await viewer.SendCursorChange(cursor);
                 }
@@ -305,7 +318,7 @@ namespace Remotely.Desktop.Win.ViewModels
                     // Run on another thread so it doesn't tie up the UI thread.
                     Task.Run(async () =>
                     {
-                        await CasterSocket.SendConnectionRequestDenied(screenCastRequest.ViewerID);
+                        await _casterSocket.SendConnectionRequestDenied(screenCastRequest.ViewerID);
                     });
                 }
             });

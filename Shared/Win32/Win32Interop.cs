@@ -10,6 +10,7 @@ using static Remotely.Shared.Win32.User32;
 
 namespace Remotely.Shared.Win32
 {
+    // TODO: Use https://github.com/dotnet/pinvoke for all p/invokes.  Remove signatures from this project.
     public class Win32Interop
     {
         private static IntPtr _lastInputDesktop;
@@ -148,7 +149,7 @@ namespace Remotely.Shared.Win32
             }
 
             // Security attibute structure used in DuplicateTokenEx and CreateProcessAsUser.
-            SECURITY_ATTRIBUTES sa = new SECURITY_ATTRIBUTES();
+            SECURITY_ATTRIBUTES sa = new();
             sa.Length = Marshal.SizeOf(sa);
 
             // Copy the access token of the winlogon process; the newly created token will be a primary token.
@@ -163,7 +164,7 @@ namespace Remotely.Shared.Win32
             // the window station has a desktop that is invisible and the process is incapable of receiving
             // user input. To remedy this we set the lpDesktop parameter to indicate we want to enable user 
             // interaction with the new process.
-            STARTUPINFO si = new STARTUPINFO();
+            STARTUPINFO si = new();
             si.cb = Marshal.SizeOf(si);
             si.lpDesktop = @"winsta0\" + desktopName;
 

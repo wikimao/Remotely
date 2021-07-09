@@ -8,22 +8,21 @@ import {
     MouseMoveDto,
     MouseUpDto,
     MouseWheelDto,
-    QualityChangeDto,
     SelectScreenDto,
     TapDto,
-    AutoQualityAdjustDto,
     ToggleAudioDto,
     ToggleBlockInputDto,
     ClipboardTransferDto,
     FileDto,
     WindowsSessionsDto,
     GenericDto,
-    ToggleWebRtcVideoDto
+    ToggleWebRtcVideoDto,
+    ToggleAutoQualityDto
 } from "./Interfaces/Dtos.js";
-import { CreateGUID, When } from "../Shared/Utilities.js";
+import { CreateGUID, When } from "./Utilities.js";
 import { FileTransferProgress } from "./UI.js";
-import { BaseDtoType } from "../Shared/Enums/BaseDtoType.js";
-import { RemoteControlMode } from "../Shared/Enums/RemoteControlMode.js";
+import { BaseDtoType } from "./Enums/BaseDtoType.js";
+import { RemoteControlMode } from "./Enums/RemoteControlMode.js";
 
 export class MessageSender {
     GetWindowsSessions() {
@@ -131,16 +130,12 @@ export class MessageSender {
             () => ViewerApp.ViewerHubConnection.SendDtoToClient(dto));
     }
 
-    SendQualityChange(qualityLevel: number) {
-        var dto = new QualityChangeDto(qualityLevel);
+    SendToggleAutoQuality(toggleOn: boolean) {
+        var dto = new ToggleAutoQualityDto(toggleOn);
         this.SendToAgent(() => ViewerApp.RtcSession.SendDto(dto),
             () => ViewerApp.ViewerHubConnection.SendDtoToClient(dto));
     }
-    SendAutoQualityAdjust(isOn: boolean) {
-        var dto = new AutoQualityAdjustDto(isOn);
-        this.SendToAgent(() => ViewerApp.RtcSession.SendDto(dto),
-            () => ViewerApp.ViewerHubConnection.SendDtoToClient(dto));
-    }
+
     SendToggleAudio(toggleOn: boolean) {
         var dto = new ToggleAudioDto(toggleOn);
         this.SendToAgent(() => ViewerApp.RtcSession.SendDto(dto),

@@ -8,13 +8,14 @@ namespace Remotely.Server.Pages
 {
     public class GetSupportModel : PageModel
     {
-        public GetSupportModel(IDataService dataService)
+        private readonly IDataService _dataService;
+        private readonly IEmailSenderEx _emailSender;
+
+        public GetSupportModel(IDataService dataService, IEmailSenderEx emailSender)
         {
-            DataService = dataService;
+            _dataService = dataService;
+            _emailSender = emailSender;
         }
-
-
-        private IDataService DataService { get; }
 
         [TempData]
         public string StatusMessage { get; set; }
@@ -27,28 +28,37 @@ namespace Remotely.Server.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnPost(string deviceID)
+        public async Task<IActionResult> OnPost(string deviceId)
         {
             if (!ModelState.IsValid)
             {
                 return Page();
             }
 
-            var orgID = DataService.GetDevice(deviceID)?.OrganizationID;
+            var orgID = _dataService.GetDevice(deviceId)?.OrganizationID;
 
-            await DataService.AddAlert(new Remotely.Shared.Models.AlertOptions()
+            var alertParts = new string[]
             {
-                AlertDeviceID = deviceID,
-                AlertMessage = $"{Input.Name} is requesting support.  " +
-                    $"Email: {Input.Email}.  " +
-                    $"Phone: {Input.Phone}.  " +
-                    $"Chat OK: {Input.ChatResponseOk}.",
-                ShouldAlert = true
-            }, orgID);
+                $"{Input.Name} is requesting support.",
+                $"Device ID: {deviceId}",
+                $"Email: {Input.Email}.",
+                $"Phone: {Input.Phone}.",
+                $"Chat OK: {Input.ChatResponseOk}."
+            };
+
+            var alertMessage = string.Join("  ", alertParts);
+            await _dataService.AddAlert(deviceId, orgID, alertMessage);
+
+            var orgUsers = await _dataService.GetAllUsersInOrganization(orgID);
+            var emailMessage = string.Join("<br />", alertParts);
+            foreach (var user in orgUsers)
+            {
+                await _emailSender.SendEmailAsync(user.Email, "Support Request", emailMessage);
+            }
 
             StatusMessage = "We got it!  Someone will contact you soon.";
 
-            return RedirectToPage("GetSupport", new { deviceID });
+            return RedirectToPage("GetSupport", new { deviceId });
         }
 
         public class InputModel

@@ -5,15 +5,15 @@ using Remotely.Server.Hubs;
 using Remotely.Server.Models;
 using Remotely.Server.Services;
 using Remotely.Shared.Models;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Remotely.Server.API
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Obsolete("This controller is here only for legacy purposes.  For new integrations, use API tokens.")]
     public class LoginController : ControllerBase
     {
         public LoginController(SignInManager<RemotelyUser> signInManager,
@@ -43,7 +43,7 @@ namespace Remotely.Server.API
                 return NotFound();
             }
 
-            var orgId = DataService.GetUserByName(login.Email)?.OrganizationID;
+            var orgId = DataService.GetUserByNameWithOrg(login.Email)?.OrganizationID;
 
             var result = await SignInManager.PasswordSignInAsync(login.Email, login.Password, false, true);
             if (result.Succeeded)
@@ -72,7 +72,7 @@ namespace Remotely.Server.API
 
             if (HttpContext?.User?.Identity?.IsAuthenticated == true)
             {
-                orgId = DataService.GetUserByName(HttpContext.User.Identity.Name)?.OrganizationID;
+                orgId = DataService.GetUserByNameWithOrg(HttpContext.User.Identity.Name)?.OrganizationID;
                 var activeSessions = CasterHub.SessionInfoList.Where(x => x.Value.RequesterUserName == HttpContext.User.Identity.Name);
                 foreach (var session in activeSessions.ToList())
                 {

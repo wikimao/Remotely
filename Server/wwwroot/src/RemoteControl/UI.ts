@@ -1,7 +1,8 @@
 ﻿import { ViewerApp } from "./App.js";
-import { ConvertUInt8ArrayToBase64 } from "../Shared/Utilities.js";
-import { WindowsSession } from "../Shared/Models/WindowsSession.js";
-import { WindowsSessionType } from "../Shared/Enums/WindowsSessionType.js";
+import { ConvertUInt8ArrayToBase64 } from "./Utilities.js";
+import { WindowsSession } from "./Models/WindowsSession.js";
+import { WindowsSessionType } from "./Enums/WindowsSessionType.js";
+import { RemoteControlMode } from "./Enums/RemoteControlMode.js";
 
 export var AudioButton = document.getElementById("audioButton") as HTMLButtonElement;
 export var MenuButton = document.getElementById("menuButton") as HTMLButtonElement;
@@ -16,14 +17,11 @@ export var ScreenViewerWrapper = document.getElementById("screenViewerWrapper") 
 export var Screen2DContext = ScreenViewer ? ScreenViewer.getContext("2d") : null;
 export var HorizontalBars = document.querySelectorAll(".horizontal-button-bar");
 export var ConnectBox = document.getElementById("connectBox") as HTMLDivElement;
+export var DisconnectedBox = document.getElementById("disconnectedBox") as HTMLDivElement;
 export var ScreenSelectBar = document.getElementById("screenSelectBar") as HTMLDivElement;
-export var QualityBar = document.getElementById("qualityBar") as HTMLDivElement;
-export var QualitySlider = document.getElementById("qualityRangeInput") as HTMLInputElement;
-export var AutoQualityAdjustCheckBox = document.getElementById("autoAdjustQualityCheckBox") as HTMLInputElement;
 export var ActionsBar = document.getElementById("actionsBar") as HTMLDivElement;
 export var ViewBar = document.getElementById("viewBar") as HTMLDivElement;
 export var ChangeScreenButton = document.getElementById("changeScreenButton") as HTMLButtonElement;
-export var QualityButton = document.getElementById("qualityButton") as HTMLButtonElement;
 export var StreamVideoButton = document.getElementById("streamVideoButton") as HTMLButtonElement;
 export var FitToScreenButton = document.getElementById("fitToScreenButton") as HTMLButtonElement;
 export var BlockInputButton = document.getElementById("blockInputButton") as HTMLButtonElement;
@@ -49,6 +47,8 @@ export var RecordSessionButton = document.getElementById("recordSessionButton") 
 export var DownloadRecordingButton = document.getElementById("downloadRecordingButton") as HTMLButtonElement;
 export var ViewOnlyButton = document.getElementById("viewOnlyButton") as HTMLButtonElement;
 export var FullScreenButton = document.getElementById("fullScreenButton") as HTMLButtonElement;
+export var AutoQualityButton = document.getElementById("autoQualityButton") as HTMLButtonElement;
+export var ToastsWrapper = document.getElementById("toastsWrapper") as HTMLDivElement;
 
 export function GetCurrentViewer(): HTMLElement {
     if (ScreenViewer.hasAttribute("hidden")) {
@@ -103,12 +103,28 @@ export function SetScreenSize(width: number, height: number) {
     Screen2DContext.clearRect(0, 0, width, height);
 }
 
+export function ShowMessage(message: string) {
+    var messageDiv = document.createElement("div");
+    messageDiv.classList.add("toast-message");
+    messageDiv.innerHTML = message;
+    ToastsWrapper.appendChild(messageDiv);
+    window.setTimeout(() => {
+        messageDiv.remove();
+    }, 5000);
+}
+
+
 export function ToggleConnectUI(shown: boolean) {
     if (shown) {
         Screen2DContext.clearRect(0, 0, ScreenViewer.width, ScreenViewer.height);
         ScreenViewer.setAttribute("hidden", "hidden");
         VideoScreenViewer.setAttribute("hidden", "hidden");
-        ConnectBox.style.removeProperty("display");
+        if (ViewerApp.Mode == RemoteControlMode.Normal) {
+            ConnectBox.style.removeProperty("display");
+        }
+        else {
+            DisconnectedBox.style.removeProperty("display");
+        }
         StreamVideoButton.classList.remove("toggled");
         BlockInputButton.classList.remove("toggled");
         AudioButton.classList.remove("toggled");
@@ -116,6 +132,7 @@ export function ToggleConnectUI(shown: boolean) {
     else {
         ConnectButton.removeAttribute("disabled");
         ConnectBox.style.display = "none";
+        DisconnectedBox.style.display = "none";
         ScreenViewer.removeAttribute("hidden");
         StatusMessage.innerHTML = "";
     }
@@ -161,13 +178,22 @@ export function UpdateStreamingToggled(toggleOn: boolean) {
         StreamVideoButton.classList.add("toggled");
         VideoScreenViewer.removeAttribute("hidden");
         ScreenViewer.setAttribute("hidden", "hidden");
-        QualityButton.setAttribute("hidden", "hidden");
+        AutoQualityButton.setAttribute("hidden", "hidden");
     }
     else {
         StreamVideoButton.classList.remove("toggled");
         ScreenViewer.removeAttribute("hidden");
-        QualityButton.removeAttribute("hidden");
         VideoScreenViewer.setAttribute("hidden", "hidden");
+        AutoQualityButton.removeAttribute("hidden");
+    }
+}
+
+export function UpdateAutoQualityToggled(toggleOn: boolean) {
+    if (toggleOn) {
+        AutoQualityButton.classList.add("toggled");
+    }
+    else {
+        AutoQualityButton.classList.remove("toggled");
     }
 }
 

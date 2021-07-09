@@ -1,15 +1,6 @@
 import { BaseDto } from "./BaseDto.js";
-import { BaseDtoType } from "../../Shared/Enums/BaseDtoType.js";
-import { WindowsSession } from "../../Shared/Models/WindowsSession.js";
-
-export class AutoQualityAdjustDto implements BaseDto {
-    constructor(isOn: boolean) {
-        this.IsOn = isOn;
-    }
-
-    IsOn: boolean;
-    DtoType: BaseDtoType = BaseDtoType.AutoQualityAdjust;
-}
+import { BaseDtoType } from "../Enums/BaseDtoType.js";
+import { WindowsSession } from "../Models/WindowsSession.js";
 
 
 export interface AudioSampleDto extends BaseDto {
@@ -17,14 +8,13 @@ export interface AudioSampleDto extends BaseDto {
 }
 
 export interface CaptureFrameDto extends BaseDto {
+    Id: string;
     EndOfFrame: boolean;
-    EndOfCapture: boolean;
     Left: number;
     Top: number;
     Width: number;
     Height: number;
     ImageBytes: Uint8Array;
-    ImageQuality: number;
 }
 
 export interface ClipboardTextDto extends BaseDto {
@@ -164,15 +154,6 @@ export class MouseWheelDto implements BaseDto {
     DtoType: BaseDtoType = BaseDtoType.MouseWheel;
 }
 
-export class QualityChangeDto implements BaseDto {
-    constructor(qualityLevel: number) {
-        this.QualityLevel = qualityLevel;
-    }
-
-    QualityLevel: number;
-    DtoType: BaseDtoType = BaseDtoType.QualityChange;
-}
-
 export interface ScreenDataDto extends BaseDto {
     DisplayNames: string[];
     SelectedScreen: string;
@@ -210,6 +191,15 @@ export class ToggleAudioDto implements BaseDto {
 
     ToggleOn: boolean;
     DtoType: BaseDtoType = BaseDtoType.ToggleAudio;
+}
+
+export class ToggleAutoQualityDto implements BaseDto {
+    constructor(toggleOn: boolean) {
+        this.ToggleOn = toggleOn;
+    }
+
+    ToggleOn: boolean;
+    DtoType: BaseDtoType = BaseDtoType.ToggleAutoQuality;
 }
 
 export class ToggleBlockInputDto implements BaseDto {
